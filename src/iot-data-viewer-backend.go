@@ -16,6 +16,7 @@ func main() {
 	log.Println("starting application")
 
 	router := mux.NewRouter()
+	router.HandleFunc(apiVersion+"/health", api.HealthStatus).Methods("GET")
 	router.HandleFunc(apiVersion+"/data", api.SaveData).Methods("POST")
 
 	c := cors.New(cors.Options{

@@ -17,4 +17,4 @@ COPY --from=build /home/app/iot-data-viewer-backend /home/app/
 
 WORKDIR /home/app
 
-CMD [ "/iot-data-viewer-backend" ]
+CMD [ "./iot-data-viewer-backend" ]
