@@ -3,36 +3,30 @@ package internal
 import (
 	model "iot-data-viewer-backend/src/model"
 	"log"
-	"sync"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
-type ConnectionObject struct {
-	Mu         sync.RWMutex
-	ConnObject map[string]mqtt.Client
-}
-
-var connectionObjectMap ConnectionObject
+var ConnObjectMap = make(map[string]mqtt.Client)
 
 func AddModifyConnection(connConfig model.ConnectionConfig) {
-	log.Print("Inside AddModifyConnection...")
+	log.Print("Inside AddModifyConnection.")
 
-	var connectivity model.MqttConfiguration
-	connectivity.ClientName = connConfig.ConnectionName
-	connectivity.HostName = connConfig.HostName
-	connectivity.HostPort = connConfig.HostPort
-	connectivity.UserName = connConfig.UserName
-	connectivity.Password = connConfig.Password
-	connectivity.Topic = connConfig.Topic
+	//Check if client already exists in the map then disconnect and again configure
+	client, retStatus := ConnObjectMap[connConfig.ConnectionName]
+	if retStatus {
+		log.Println("Client " + connConfig.ConnectionName + " already exists, disconnecting previous connection & removing from map.")
+		client.Disconnect(250)
+		delete(ConnObjectMap, connConfig.ConnectionName)
+	}
 
-	ret, opts := connectivity.Configure()
+	retStatus, client = ConfigureAndConnect(connConfig)
 
-	if ret {
-		ret, client := connectivity.Connect(opts)
-		if ret {
-			if connectivity.Subscribe(client, connConfig.Topic, 1) {
-				connectionObjectMap.ConnObject[connConfig.ConnectionName] = client
+	if retStatus {
+		if Influx_ConfigureAndConnect(connConfig.ConnectionName) {
+			if Subscribe(client, connConfig.Topic, 1) {
+				ConnObjectMap[connConfig.ConnectionName] = client
+				log.Println("Client " + connConfig.ConnectionName + " added in the map.")
 			}
 		}
 	}
